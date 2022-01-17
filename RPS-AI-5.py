@@ -1,38 +1,57 @@
+from ast import In
 from typing import DefaultDict
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 
-#random.seed(10) #AHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+'''
+In this version of the code you can specify witch data you want and generate it through the bots.
+You can either make data for all the bots at once or you can focus on specific bots, one at a time.
+In the report we made data in other ways than the ones that are in this code, but it should be easy to convert, to get those instead, if you want.
+'''
+
+# Define plot type
+# if True, itterate over all the bots, else spcify a single bot in the while loop.
+all_bots = False
+
+# Either "point_plot" to show how many points the AI got over a short amount of time
+# Or "percentage_plot" to show the percent of games won by the AI over a short amount of time
+# Or "move_avg" to show the moving average of the win rate for the AI over a longer period of time
+plot_type = "point_plot"
+
+#The length of 1 round based on plot type
+if plot_type == "move_avg":
+    game_length = 2000
+else:
+    game_length = 150
+
+
+if all_bots:
+    for_itt = 7
+else:
+    for_itt = 1
 
 # CONTROLS
 # Tie point
-tie_point = 0 #-0.5
+tie_point = -0.5
 
 # Propabiliy of random act
-epsillon = 1.0 #1.0
+epsillon = 1.0
 
 # Discount on epsillon
-gamma = 0.9 #0.9
+gamma = 0.9
 
 # Learning rate
-alpha = 0.1 #0.1
+alpha = 0.1
 
 # Reward
-reward = 0.1 #0.5
+reward = 0.1
 
-# Amount of games the AI looks back, to make its decision
+# Amount of games the AI looks back (in states), to make its decision
 lookback_amount = 2
 
 # INITIALIZATION
-# Initializing points and game statistics 
-AI_points,human_points,total_games,ties,count,game_val = 0,0,0,0,0,0
-rest_actions = random.sample(range(3), 2)
-
-# q-table initialization
-q_values = DefaultDict(lambda: [0.33,0.33,0.33])
 
 # Arrays to collect statistics for plots
 x,y,y1 = np.array([]),np.array([]),np.array([])
@@ -65,12 +84,6 @@ def get_row(old_inputs):
             input_list.append(rps_dict[action])
     input_str = "".join(input_list)
     return input_str
-
-# Starting with a random set of pre actions to initialize the update function
-old_actions = []
-for i in range(lookback_amount):
-    old_actions.append(random.sample(range(3), 2))
-
 
 # Function for updating the rows of the q-dictionary
 def update_table(action1,action2,old_actions):
@@ -106,6 +119,11 @@ def human_input():
             break
     action -= 1
     return action
+
+# Starting with a random set of pre actions to initialize the update function
+old_actions = []
+for i in range(lookback_amount):
+    old_actions.append(random.sample(range(3), 2))
 
 # BOTS FOR GATHERING STATISTICS
 # A super dumb bot for early testing
@@ -201,38 +219,33 @@ def ai_input():
             action = equal_max_val[0]
     return action
 
-for i in range(400):
+for i in range(for_itt):
     AI_points,human_points,total_games,ties,count,game_val = 0,0,0,0,0,0
     rest_actions = random.sample(range(3), 2)
 
     # q-table initialization
     q_values = DefaultDict(lambda: [0.33,0.33,0.33])         
 #------------------------WHILE-LOOP-RUNNING-GAME----------------------------
-    while total_games < 150:
+    while total_games < game_length:
         
-        #Defining action1, could be a human input or one of the bots
-        # if i == 0:
-        #     action1 = bot_i(old_actions)
-        # if i == 1:
-        #     action1 = bot_ii(game_val,rest_actions)
-        # if i == 2:
-        #     action1 = bot_iii(game_val,rest_actions)
-        # if i == 3:
-        #     action1 = bot_iv(total_games,game_val,rest_actions)
-        # if i == 4:
-        #     action1 = bot_v(total_games)
-        # if i == 5:
-        #     action1 = bot_vi(total_games)           
-        # if i == 6:
-        #     action1 = super_dumb_bot()
-        
-        action1 = super_dumb_bot()
-        
-        #action1 = human_input()
-        
-        #if quit is chosen the while-loop ends
-        # if action1 == -1:
-        #     break
+        # If you want to iterate over the different bots. This is how we made some of the plots from the report
+        if all_bots:
+            if i == 0:
+                action1 = bot_i(old_actions)
+            if i == 1:
+                action1 = bot_ii(game_val,rest_actions)
+            if i == 2:
+                action1 = bot_iii(game_val,rest_actions)
+            if i == 3:
+                action1 = bot_iv(total_games,game_val,rest_actions)
+            if i == 4:
+                action1 = bot_v(total_games)
+            if i == 5:
+                action1 = bot_vi(total_games)           
+            if i == 6:
+                action1 = super_dumb_bot()
+        else: # Else you can specify a single bot to look at right here
+            action1 = super_dumb_bot()
 
         # Defining action2, usually the AI
         action2 = ai_input()
@@ -263,129 +276,135 @@ for i in range(400):
         
         # PLOTTING AND STATISTICS
         
-        # Prints for human players, and some statistics for the game (prints might be commented out)
-        #print("AI-played:", print_dict[action2])
-        #print("Game nr.", total_games)
+        # Some statistics for the game (prints might be commented out)
         if game_val == 1:
             AI_points += 1
-            #print("-- AI wins --")
         elif game_val == -1:
             human_points += 1
-            #print("-- Human wins --")
         elif game_val == tie_point:
             ties += 1
-            #print("-- Tie --")
-        #if total_games > 148:
-            #print("SSSSSTTTTTOOOOOOOOPPPPPPPPP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             
         total_games += 1
         
         # Calculations for the plots and statistics
-        AI_x = AI_points/total_games
-        human_x = human_points/total_games
+        if plot_type == "point_plot":    
+            y = np.append(y, AI_points)
+            # y = np.append(y, human_points) #You can choose to see how the human performs and not the AI
         
-        # Appending values to arrays
-        #x = np.append(x, total_games)
-        #if game_val == 1:
-        #y = np.append(y, AI_x)
-        #else:
-            #y = np.append(y, 0)        
-            
-        # if game_val == -1:
-        #     y1 = np.append(y1, 100)
-        # else:
-        #     y1 = np.append(y1, 0)
+        elif plot_type == "percentage_plot":    
+            AI_x = AI_points/total_games
+            # human_x = human_points/total_games #You can choose to see how the human performs and not the AI
+            y = np.append(y, AI_x)      
+        
+        elif plot_type == "move_avg":  
+            AI_x = AI_points/total_games  
+            # Appending values to arrays
+            y = np.append(y, AI_x)       
+    
+    # Makin sure to keep values from different bots seperate
+    if all_bots:
+        if i == 0:
+            bot_i_wins = np.copy(y)
+            y = np.array([])
+        if i == 1:
+            bot_ii_wins = np.copy(y)
+            y = np.array([])
+        if i == 2:
+            bot_iii_wins = np.copy(y)
+            y = np.array([])
+        if i == 3:
+            bot_iv_wins = np.copy(y)
+            y = np.array([])
+        if i == 4:
+            bot_v_wins = np.copy(y)
+            y = np.array([])
+        if i == 5:
+            bot_vi_wins = np.copy(y)
+            y = np.array([])
+        if i == 6:
+            super_dumb_bot_wins = np.copy(y)
+            y = np.array([])
 
-    print(AI_points,human_points,ties)
-    # if i == 0:
-    #     bot_i_wins = np.copy(y)
-    #     y = np.array([])
-    # if i == 1:
-    #     bot_ii_wins = np.copy(y)
-    #     y = np.array([])
-    # if i == 2:
-    #     bot_iii_wins = np.copy(y)
-    #     y = np.array([])
-    # if i == 3:
-    #     bot_iv_wins = np.copy(y)
-    #     y = np.array([])
-    # if i == 4:
-    #     bot_v_wins = np.copy(y)
-    #     y = np.array([])
-    # if i == 5:
-    #     bot_vi_wins = np.copy(y)
-    #     y = np.array([])
-    # if i == 6:
-    #     super_dumb_bot_wins = np.copy(y)
-    #     y = np.array([])
+x = np.linspace(0,total_games,total_games,endpoint=True) #x-axis
 
-# x = np.linspace(0,total_games,total_games,endpoint=True)
-# bundlinje = np.full(total_games,1/3)
+# Bottom line
+if plot_type == "point_plot":
+    bottom_line_value = 100/3
+else:
+    bottom_line_value = 1/3
+bottom_line = np.full(total_games,bottom_line_value)
 
-# cumsumlen = round(total_games/100)
+#The intervals for the moving average
+cumsumlen = round(total_games/100)
 
-# def move_avg_bot(bot):
-#     move_avg_bot = np.convolve(bot, np.ones(cumsumlen), mode='same')/cumsumlen
-#     move_avg_bot = np.delete(move_avg_bot, np.s_[len(move_avg_bot)-cumsumlen:])
-#     move_avg_bot = np.delete(move_avg_bot, np.s_[:cumsumlen])
-#     return move_avg_bot
-
-
-# move_avg_bot_i = move_avg_bot(bot_i_wins)
-# move_avg_bot_ii = move_avg_bot(bot_ii_wins)
-# move_avg_bot_iii = move_avg_bot(bot_iii_wins)
-# move_avg_bot_iv = move_avg_bot(bot_iv_wins)
-# move_avg_bot_v = move_avg_bot(bot_v_wins)
-# move_avg_bot_vi = move_avg_bot(bot_vi_wins)
-# move_avg_super_dumb_bot = move_avg_bot(super_dumb_bot_wins)
-# x = np.delete(x, np.s_[len(x)-cumsumlen:])
-# x = np.delete(x, np.s_[:cumsumlen])
-# bundlinje = np.delete(bundlinje, np.s_[len(bundlinje)-cumsumlen:])
-# bundlinje = np.delete(bundlinje, np.s_[:cumsumlen])
-
-# Exiting prints for score and statistics    
-#printing actions
-# print("*** Actions ***".center(center_val))
-# text ="AI: " + print_dict[action2]
-# print(text.center(center_val))
-# text ="Human: " + print_dict[action1]
-# print(text.center(center_val))
-# print("       ")
+#Function for calculating the moving average of the AI-points and deleting edge-data (as this is useless in a rolling average)
+if plot_type == "move_avg":
+    def data_format(bot):
+        move_avg_bot = np.convolve(bot, np.ones(cumsumlen), mode='same')/cumsumlen
+        move_avg_bot = np.delete(move_avg_bot, np.s_[len(move_avg_bot)-cumsumlen:])
+        move_avg_bot = np.delete(move_avg_bot, np.s_[:cumsumlen])
+        return move_avg_bot
+else:
+    def data_format(bot):
+        return bot
 
 
-# print("*** Score ***".center(center_val))
-# text = "AI points: " + str(AI_points)
-# print(text.center(center_val))
-# text ="Human points: " + str(human_points)
-# print(text.center(center_val))
-# text ="Ties: " + str(ties)
-# print(text.center(center_val))
-# print("       ")
-# text ="Total number of games: " + str(total_games)
-# print(text.center(center_val))
-# print("       ")
-#print(q_values)
-#print(reward,alpha)
-#print("Max value:", max_value, optimized_value)
+# Calculating the moving average for each bot
+if all_bots:
+    bot_i_y = data_format(bot_i_wins)
+    bot_ii_y = data_format(bot_ii_wins)
+    bot_iii_y = data_format(bot_iii_wins)
+    bot_iv_y = data_format(bot_iv_wins)
+    bot_v_y = data_format(bot_v_wins)
+    bot_vi_y = data_format(bot_vi_wins)
+    super_dumb_bot_y = data_format(super_dumb_bot_wins)
+elif plot_type == "move_avg":
+    y = data_format(y)
+    
+
+# Also cut x-axis and bottom line, to fit data
+if plot_type == "move_avg":
+    x = np.delete(x, np.s_[len(x)-cumsumlen:])
+    x = np.delete(x, np.s_[:cumsumlen])
+    bottom_line = np.delete(bottom_line, np.s_[len(bottom_line)-cumsumlen:])
+    bottom_line = np.delete(bottom_line, np.s_[:cumsumlen])
+
+# Exiting prints for score and statistics
+print("*** Score ***".center(center_val))
+text = "AI points: " + str(AI_points)
+print(text.center(center_val))
+text ="Human points: " + str(human_points)
+print(text.center(center_val))
+text ="Ties: " + str(ties)
+print(text.center(center_val))
+print("       ")
+text ="Total number of games: " + str(total_games)
+print(text.center(center_val))
+print("       ")
+
+# Formatting and printing q-table
+q_table = np.array(list(q_values.items()), dtype = object)
+print(q_table)
 
 # Exiting plots
-# fig,(ax1, ax2) = plt.subplots(2)
-# fig.suptitle('Subplots (1. AI, 2. Human), human trials' )
-# plt.style.use('seaborn-deep')
-# plt.plot(x, move_avg_bot_i, label = "bot_i")  
-# plt.plot(x, move_avg_bot_ii, label = "bot_ii") 
-# plt.plot(x, move_avg_bot_iii, label = "bot_iii") 
-# plt.plot(x, move_avg_bot_iv, label = "bot_iv") 
-# plt.plot(x, move_avg_bot_v, label = "bot_v") 
-# plt.plot(x, move_avg_bot_vi, label = "bot_vi")
-# plt.plot(x, move_avg_super_dumb_bot,'g', label = "super_dumb_bot")
-# plt.plot(x, bundlinje,'r', label = "Bundlinje")
-# plt.legend()
-# plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
-# plt.subplots_adjust(right=0.7)
-# plt.title("Winrate for AI against human-like bots\nRolling average")
-# plt.xlabel("Games played")
-# plt.ylabel("Percentage won")
-# plt.show()
+plt.style.use('seaborn-deep')
+if all_bots:
+    plt.plot(x, bot_i_y, label = "bot_i")  
+    plt.plot(x, bot_ii_y, label = "bot_ii") 
+    plt.plot(x, bot_iii_y, label = "bot_iii") 
+    plt.plot(x, bot_iv_y, label = "bot_iv") 
+    plt.plot(x, bot_v_y, label = "bot_v") 
+    plt.plot(x, bot_vi_y, label = "bot_vi")
+    plt.plot(x, super_dumb_bot_y,'g', label = "super_dumb_bot")
+else:
+    plt.plot(x, y, label = "Data from specific bot")
+plt.plot(x, bottom_line,'r', label = "bottom_line")
+plt.legend()
+plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
+plt.subplots_adjust(right=0.7)
+plt.title("Winrate for AI against human-like bots\nRolling average")
+plt.xlabel("Games played")
+plt.ylabel(plot_type)
+plt.show()
 
 print("The game has been quit.")
